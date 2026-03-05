@@ -1,0 +1,511 @@
+---
+title: "final"
+format: html
+author: "Jaslyn, Isabella, Richie"
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+## Data
+
+```{r}
+data <- read_csv(here::here("data", "BHM_sample20.csv"))
+
+##Treatment variables
+data$PML <- ifelse(data$A352==0,0,1)
+data$PMI <- ifelse(data$A352>=3,1,0) #Note: all PSUR intervention had PMI in 2003 and after
+names(data)[287:298] <- c("fl.2001","fl.2002","fl.2003","fl.2004","fl.2005","fl.2006","fl.2007","fl.2008","fl.2009","fl.2010","fl.2011","fl.2012")
+data$toPeru.km <- data$A486/1000
+
+# #This function remakes the data frame with only the specified columns & NAs removed:
+# make <- function(data,names) {
+#   datasub <- as.data.frame(data)
+#   sub = substitute(names)
+#   names <- as.character(sub)
+#   data.make <- subset(datasub, select=names(datasub) %in% names)
+#   data.make <<- na.omit(data.make)
+#   data.make <- na.omit(data.make)
+#   print(c("ob =",nrow(data.make)),quote=F)}
+# #Example> make(c(monit2other,sa1all))
+
+make <- function(data, names) {
+
+  # Capture unquoted variable names
+  vars <- as.character(substitute(names))[-1]
+
+  # Subset and remove NA rows
+  data.make <- data[, vars, drop = FALSE]
+  data.make <- na.omit(data.make)
+
+  # Print number of observations
+  cat("ob =", nrow(data.make), "\n")
+
+  return(data.make)
+}
+
+```
+
+```{r}
+# could make a function to run through all the waves... 
+
+wave_2002 <- data %>%
+  # keep A352 == 0 or 2
+  filter(A352 %in% c(0, 2)) %>%
+  mutate(
+    # post PML totals + each year
+    fl_5yr_postPML = fl.2003 + fl.2004 + fl.2005 + fl.2006 + fl.2007,
+    fl_yr1 = fl.2003,
+    fl_yr2 = fl.2004,
+    fl_yr3 = fl.2005,
+    fl_yr4 = fl.2006,
+    fl_yr5 = fl.2007,
+
+    # pre vars
+    fl_pre_5cell = fl.2001 + A393 + A461,
+
+    # same as wave.2002[,314] - wave.2002[,287]
+    forest_pre = .[[314]] - .[[287]],
+
+    pop_den_1km_pre  = A173,
+    pop_den_5km_pre  = A176,
+    pop_den_10km_pre = A174,
+    dist_disturb_pre = A116,
+
+    wave = "two"
+  ) %>%
+  # final filters
+  filter(forest_pre > 450000, A346 == 0)
+
+wave_2003 <- data %>%
+  filter(A352 %in% c(0, 3)) %>%
+  mutate(
+    # 5-year post-PML sum + each year
+    fl_5yr_postPML = fl.2004 + fl.2005 + fl.2006 + fl.2007 + fl.2008,
+    fl_yr1 = fl.2004,
+    fl_yr2 = fl.2005,
+    fl_yr3 = fl.2006,
+    fl_yr4 = fl.2007,
+    fl_yr5 = fl.2008,
+
+    # pre variables
+    fl_pre_5cell = fl.2002 + A394 + A462,
+
+    # forest.pre = col314 - rowSums(cols 287:288)
+    forest_pre = .[[314]] - rowSums(across(all_of(287:288)), na.rm = TRUE),
+
+    pop_den_1km_pre  = A178,
+    pop_den_5km_pre  = A181,
+    pop_den_10km_pre = A179,
+    dist_disturb_pre = A117,
+
+    wave = "three"
+  ) %>%
+  filter(forest_pre > 450000, A346 == 0)
+
+wave_2004 <- data %>%
+  filter(A352 == 0) %>%
+  mutate(
+    # 5-year post-PML sum + each year
+    fl_5yr_postPML = rowSums(across(fl.2005:fl.2009), na.rm = TRUE),
+    fl_yr1 = fl.2005,
+    fl_yr2 = fl.2006,
+    fl_yr3 = fl.2007,
+    fl_yr4 = fl.2008,
+    fl_yr5 = fl.2009,
+
+    # pre variables
+    fl_pre_5cell = fl.2003 + A395 + A463,
+
+    # forest.pre = col314 - rowSums(cols 287:289)
+    forest_pre = .[[314]] - rowSums(across(all_of(287:289)), na.rm = TRUE),
+
+    pop_den_1km_pre  = A183,
+    pop_den_5km_pre  = A186,
+    pop_den_10km_pre = A184,
+    dist_disturb_pre = A118,
+
+    wave = "four"
+  ) %>%
+  filter(forest_pre > 450000, A346 == 0)
+
+wave_2005 <- data %>%
+  filter(A352 %in% c(0, 5)) %>%
+  mutate(
+    # 5-year post-PML sum + each year
+    fl_5yr_postPML = rowSums(across(fl.2006:fl.2010), na.rm = TRUE),
+    fl_yr1 = fl.2006,
+    fl_yr2 = fl.2007,
+    fl_yr3 = fl.2008,
+    fl_yr4 = fl.2009,
+    fl_yr5 = fl.2010,
+
+    # pre variables
+    fl_pre_5cell = fl.2004 + A396 + A464,
+
+    # forest.pre = col314 - rowSums(cols 287:290)
+    forest_pre = .[[314]] - rowSums(across(all_of(287:290)), na.rm = TRUE),
+
+    pop_den_1km_pre  = A188,
+    pop_den_5km_pre  = A191,
+    pop_den_10km_pre = A189,
+    dist_disturb_pre = A119,
+
+    wave = "five"
+  ) %>%
+  filter(forest_pre > 450000, A346 == 0)
+
+wave_2006 <- data %>%
+  filter(A352 %in% c(0, 6)) %>%
+  mutate(
+    # 5-year post-PML sum + each year
+    fl_5yr_postPML = rowSums(across(fl.2007:fl.2011), na.rm = TRUE),
+    fl_yr1 = fl.2007,
+    fl_yr2 = fl.2008,
+    fl_yr3 = fl.2009,
+    fl_yr4 = fl.2010,
+    fl_yr5 = fl.2011,
+
+    # pre variables
+    fl_pre_5cell = fl.2005 + A397 + A465,
+
+    # forest.pre = col314 - rowSums(cols 287:291)
+    forest_pre = .[[314]] - rowSums(across(all_of(287:291)), na.rm = TRUE),
+
+    pop_den_1km_pre  = A193,
+    pop_den_5km_pre  = A196,
+    pop_den_10km_pre = A194,
+    dist_disturb_pre = A120,
+
+    wave = "six"
+  ) %>%
+  filter(forest_pre > 450000, A346 == 0)
+
+wave_2007 <- data %>%
+  filter(A352 %in% c(0, 7)) %>%
+  mutate(
+    # 5-year post-PML sum + each year
+    fl_5yr_postPML = rowSums(across(fl.2008:fl.2012), na.rm = TRUE),
+    fl_yr1 = fl.2008,
+    fl_yr2 = fl.2009,
+    fl_yr3 = fl.2010,
+    fl_yr4 = fl.2011,
+    fl_yr5 = fl.2012,
+
+    # pre variables
+    fl_pre_5cell = fl.2006 + A398 + A466,
+
+    # forest.pre = col314 - rowSums(cols 287:292)
+    forest_pre = .[[314]] - rowSums(across(all_of(287:292)), na.rm = TRUE),
+
+    pop_den_1km_pre  = A198,
+    pop_den_5km_pre  = A201,
+    pop_den_10km_pre = A199,
+    dist_disturb_pre = A121,
+
+    wave = "seven"
+  ) %>%
+  filter(forest_pre > 450000, A346 == 0)
+
+data_flat <- rbind(wave_2002, wave_2003, wave_2004, wave_2005, wave_2006, wave_2007)
+```
+
+
+1. Data Description
+After the code block(s) that read in and clean the data, add some notes covering:
+
+What does each row represent? What is the unit of observation?
+What are the key outcome, treatment, and control variables?
+Any notable data cleaning decisions (dropped observations, constructed variables, etc.)
+Sample size, time period, and geographic scope
+
+## Study Replication
+
+```{r}
+### figure 5 recreation
+
+data_PMLonly_flat <- subset(data_flat, PML==0 | (PML==1 & PMI==0))
+
+#Model 1 is year-on-year decomposition of Model (a) in Figure 4
+m1.PML1 <- lm(fl_yr1 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data=data_PMLonly_flat)
+summary(m1.PML1)
+m1.PML2 <- lm(fl_yr2 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data=data_PMLonly_flat)
+summary(m1.PML2)
+m1.PML3 <- lm(fl_yr3 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data=data_PMLonly_flat)
+summary(m1.PML3)
+m1.PML4 <- lm(fl_yr4 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data=data_PMLonly_flat)
+summary(m1.PML4)
+m1.PML5 <- lm(fl_yr5 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data=data_PMLonly_flat)
+summary(m1.PML5)
+
+# running a different matching method
+
+library(MatchIt)
+
+data_make <- make(data_PMLonly_flat, 
+                  c(fl_5yr_postPML, fl_yr1, fl_yr2, fl_yr3, fl_yr4, fl_yr5, PML, fl_pre_5cell, forest_pre, pop_den_5km_pre, dist_disturb_pre, A128, A129, A130, A154, A347, A361, A362))
+
+out_PMLonly_flat <- matchit(PML ~ fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre +
+                A128 + A129 + A130 + A154 + A347 + A361 + A362,
+              data = data_make,
+              method = "nearest", distance = "mahalanobis", discard = "none")
+summary(out_PMLonly_flat,interactions=T,standardize=T)
+
+data_PMLonly_flat_matched <- match.data(out_PMLonly_flat)
+
+# Model 2 is year-on-year decomposition of Model (b) in Figure 4 ### THISIS USING MATCHING DATA!!!
+m2.PML1 <- lm(fl_yr1 ~ PML, weights = weights, data = data_PMLonly_flat_matched)
+summary(m2.PML1)
+m2.PML2 <- lm(fl_yr2 ~ PML, weights = weights, data = data_PMLonly_flat_matched)
+summary(m2.PML2)
+m2.PML3 <- lm(fl_yr3 ~ PML, weights = weights, data = data_PMLonly_flat_matched)
+summary(m2.PML3)
+m2.PML4 <- lm(fl_yr4 ~ PML, weights = weights, data = data_PMLonly_flat_matched)
+summary(m2.PML4)
+m2.PML5 <- lm(fl_yr5 ~ PML, weights = weights, data = data_PMLonly_flat_matched)
+summary(m2.PML5)
+
+#Model 3 is year-on-year decomposition of Model (c) in Figure 6 #### THIS IS USING MATCHING DATA!!
+m3.PML1 <- lm(fl_yr1 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMLonly_flat_matched)
+summary(m3.PML1)
+m3.PML2 <- lm(fl_yr2 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMLonly_flat_matched)
+summary(m3.PML2)
+m3.PML3 <- lm(fl_yr3 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMLonly_flat_matched)
+summary(m3.PML3)
+m3.PML4 <- lm(fl_yr4 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMLonly_flat_matched)
+summary(m3.PML4)
+m3.PML5 <- lm(fl_yr5 ~ PML + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMLonly_flat_matched)
+summary(m3.PML5)
+
+##Year by year effects of PML
+year <- seq(1:5)
+m1.coef <- c(m1.PML1$coef[2],m1.PML2$coef[2],m1.PML3$coef[2],m1.PML4$coef[2],m1.PML5$coef[2])
+m1.se <- c(coef(summary(m1.PML1))[2,2],coef(summary(m1.PML2))[2,2],coef(summary(m1.PML3))[2,2],coef(summary(m1.PML4))[2,2],coef(summary(m1.PML5))[2,2])
+m2.coef <- c(m2.PML1$coef[2],m2.PML2$coef[2],m2.PML3$coef[2],m2.PML4$coef[2],m2.PML5$coef[2])
+m2.se <- c(coef(summary(m2.PML1))[2,2],coef(summary(m2.PML2))[2,2],coef(summary(m2.PML3))[2,2],coef(summary(m2.PML4))[2,2],coef(summary(m2.PML5))[2,2])
+m3.coef <- c(m3.PML1$coef[2],m3.PML2$coef[2],m3.PML3$coef[2],m3.PML4$coef[2],m3.PML5$coef[2])
+m3.se <- c(coef(summary(m3.PML1))[2,2],coef(summary(m3.PML2))[2,2],coef(summary(m3.PML3))[2,2],coef(summary(m3.PML4))[2,2],coef(summary(m3.PML5))[2,2])
+
+# par(mar = c(4.1, 5.1, 1.1, 1.1))
+# plot(1,type="n",xlim=c(0.8,5.2),ylim=c(-600,400), ylab=expression(paste("Effect on Deforestation (",m^{2} ," per " ,km^{2},")")),xlab="Year", cex.lab=1.2, cex.axis=1.2)
+# abline(h=0, lty=2)
+# polygon(x=c(year[1:5],year[5:1]),y=c(m1.coef+2*m1.se,m1.coef[5:1]-2*m1.se[5:1]),col=rgb(.6,.6,.6,0.5), border=NA)
+# polygon(x=c(year[1:5],year[5:1]),y=c(m2.coef+2*m2.se,m2.coef[5:1]-2*m2.se[5:1]),col=rgb(0, 0, 0.8,0.5), border=NA)
+# polygon(x=c(year[1:5],year[5:1]),y=c(m3.coef+2*m3.se,m3.coef[5:1]-2*m3.se[5:1]),col=rgb(0, 0, 1,0.5), border=NA)
+# lines(year,m1.coef,type="l",col="black",lwd=5)
+# lines(year,m2.coef,type="l",col="blue",lwd=5)
+# lines(year,m3.coef,type="l",col="blue",lwd=5)
+
+```
+
+```{r}
+# remake figure 5
+df <- tibble(
+  year = year,
+  coef = m1.coef,
+  se   = m1.se
+) %>%
+  mutate(
+    ymin = coef - 2 * se,
+    ymax = coef + 2 * se
+  )
+
+ggplot(df, aes(x = year, y = coef)) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_ribbon(aes(ymin = ymin, ymax = ymax),
+              fill = "grey60", alpha = 0.5) +
+  geom_line(color = "black", linewidth = 1.6) +
+  coord_cartesian(xlim = c(0.8, 5.2), ylim = c(-600, 400)) +
+  labs(
+    x = "Year",
+    y = expression(paste("Effect on Deforestation (", m^2, " per ", km^2, ")"))
+  ) +
+  theme_classic(base_size = 14) +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text  = element_text(size = 12)
+  )
+
+df_5 <- data.frame(
+  year = rep(year, 3),
+  coef = c(m1.coef, m2.coef, m3.coef),
+  se   = c(m1.se,   m2.se,   m3.se),
+  model = factor(rep(c("Model 1", "Model 2", "Model 3"),
+                     each = length(year)))
+) %>%
+  mutate(
+    ymin = coef - 2 * se,
+    ymax = coef + 2 * se
+  )
+
+ggplot(df_5, aes(x = year, y = coef, color = model, fill = model)) +
+
+  geom_hline(yintercept = 0, linetype = 2) +
+
+  geom_ribbon(aes(ymin = ymin, ymax = ymax),
+              alpha = 0.4, color = NA) +
+
+  geom_line(linewidth = 1.5) +
+
+  coord_cartesian(xlim = c(0.8, 5.2),
+                  ylim = c(-600, 400)) +
+
+  scale_color_manual(values = c("black", "blue", "blue")) +
+  scale_fill_manual(values = c("grey60", "darkblue", "blue")) +
+
+  labs(
+    x = "Year",
+    y = expression(paste("Effect on Deforestation (", m^2,
+                         " per ", km^2, ")"))
+  ) +
+
+  theme_classic(base_size = 14)
+
+```
+
+```{r}
+### recreating figure 6
+
+data_PMI_flat <- subset(data_flat, PML==0 | (PML==1 & PMI==1))
+
+data_make_2 <- make(data_PMI_flat,
+                    c(fl_5yr_postPML, fl_yr1, fl_yr2, fl_yr3, fl_yr4, fl_yr5, PMI, fl_pre_5cell, forest_pre, pop_den_5km_pre, dist_disturb_pre, A128, A129, A130, A154, A347, A361, A362))
+
+out_PMI_flat <- matchit(
+  PMI ~ fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre +
+    A128 + A129 + A130 + A154 + A347 + A361 + A362,
+  data = data_make_2,
+  method = "nearest",
+  distance = "mahalanobis",
+  discard = "none",   # keep this the same as your genetic spec
+  ratio = 1              # 1:1 matching (default)
+)
+summary(out_PMI_flat, interactions = TRUE, standardize = TRUE)
+
+data_PMI_flat_matched <- match.data(out_PMI_flat)
+
+###Figure 7
+
+#Model 1 is year-on-year decomposition of Model (a) in Figure 6
+m1.1 <- lm(fl_yr1 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data = data_PMI_flat)
+summary(m1.1)
+m1.2 <- lm(fl_yr2 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data = data_PMI_flat)
+summary(m1.2)
+m1.3 <- lm(fl_yr3 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data = data_PMI_flat)
+summary(m1.3)
+m1.4 <- lm(fl_yr4 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data = data_PMI_flat)
+summary(m1.4)
+m1.5 <- lm(fl_yr5 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, data = data_PMI_flat)
+summary(m1.5)
+
+#Model 2 is year-on-year decomposition of Model (b) in Figure 6
+m2.1 <- lm(fl_yr1 ~ PMI, weights = weights, data = data_PMI_flat_matched)
+summary(m2.1)
+m2.2 <- lm(fl_yr2 ~ PMI, weights = weights, data = data_PMI_flat_matched)
+summary(m2.2)
+m2.3 <- lm(fl_yr3 ~ PMI, weights = weights, data = data_PMI_flat_matched)
+summary(m2.3)
+m2.4 <- lm(fl_yr4 ~ PMI, weights = weights, data = data_PMI_flat_matched)
+summary(m2.4)
+m2.5 <- lm(fl_yr5 ~ PMI, weights = weights, data = data_PMI_flat_matched)
+summary(m2.5)
+
+#Model 3 is year-on-year decomposition of Model (c) in Figure 6
+m3.1 <- lm(fl_yr1 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMI_flat_matched)
+summary(m3.1)
+m3.2 <- lm(fl_yr2 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMI_flat_matched)
+summary(m3.2)
+m3.3 <- lm(fl_yr3 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMI_flat_matched)
+summary(m3.3)
+m3.4 <- lm(fl_yr4 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMI_flat_matched)
+summary(m3.4)
+m3.5 <- lm(fl_yr5 ~ PMI + fl_pre_5cell + forest_pre + pop_den_5km_pre + dist_disturb_pre + A128 + A129 + A130 + A154 + A347 + A361 + A362, weights = weights, data = data_PMI_flat_matched)
+summary(m3.5)
+
+##Year by year effects of PMI
+year <- seq(1:5)
+m1.coef <- c(m1.1$coef[2],m1.2$coef[2],m1.3$coef[2],m1.4$coef[2],m1.5$coef[2])
+m1.se <- c(coef(summary(m1.1))[2,2],coef(summary(m1.2))[2,2],coef(summary(m1.3))[2,2],coef(summary(m1.4))[2,2],coef(summary(m1.5))[2,2])
+m2.coef <- c(m2.1$coef[2],m2.2$coef[2],m2.3$coef[2],m2.4$coef[2],m2.5$coef[2])
+m2.se <- c(coef(summary(m2.1))[2,2],coef(summary(m2.2))[2,2],coef(summary(m2.3))[2,2],coef(summary(m2.4))[2,2],coef(summary(m2.5))[2,2])
+m3.coef <- c(m3.1$coef[2],m3.2$coef[2],m3.3$coef[2],m3.4$coef[2],m3.5$coef[2])
+m3.se <- c(coef(summary(m3.1))[2,2],coef(summary(m3.2))[2,2],coef(summary(m3.3))[2,2],coef(summary(m3.4))[2,2],coef(summary(m3.5))[2,2])
+
+# par(mar = c(4.1, 5.1, 1.1, 1.1))
+# plot(1,type="n",xlim=c(0.8,5.2),ylim=c(-500,400), ylab=expression(paste("Effect on Deforestation (",m^{2} ," per " ,km^{2},")")),xlab="Year", cex.lab=1.2, cex.axis=1.2)
+# abline(h=0, lty=2)
+# polygon(x=c(year[1:5],year[5:1]),y=c(m1.coef+2*m1.se,m1.coef[5:1]-2*m1.se[5:1]),col=rgb(.6,.6,.6,0.5), border=NA)
+# polygon(x=c(year[1:5],year[5:1]),y=c(m2.coef+2*m2.se,m2.coef[5:1]-2*m2.se[5:1]),col=rgb(0, 0, 0.8,0.5), border=NA)
+# polygon(x=c(year[1:5],year[5:1]),y=c(m3.coef+2*m3.se,m3.coef[5:1]-2*m3.se[5:1]),col=rgb(0, 0, 1,0.5), border=NA)
+# lines(year,m1.coef,type="l",col="black",lwd=5)
+# lines(year,m2.coef,type="l",col="blue",lwd=5)
+# lines(year,m3.coef,type="l",col="blue",lwd=5)
+
+year <- 1:5
+
+df_7 <- data.frame(
+  year  = rep(year, 3),
+  coef  = c(m1.coef, m2.coef, m3.coef),
+  se    = c(m1.se,   m2.se,   m3.se),
+  model = factor(rep(c("Model 1","Model 2","Model 3"),
+                     each = length(year)))
+) %>%
+  mutate(
+    ymin = coef - 2 * se,
+    ymax = coef + 2 * se
+  )
+
+
+ggplot(df_7, aes(x = year, y = coef)) +
+
+  # zero line
+  geom_hline(yintercept = 0, linetype = 2) +
+
+  # confidence bands
+  geom_ribbon(aes(ymin = ymin, ymax = ymax, fill = model),
+              alpha = 0.4, color = NA) +
+
+  # coefficient lines
+  geom_line(aes(color = model), linewidth = 1.8) +
+
+  coord_cartesian(xlim = c(0.8, 5.2),
+                  ylim = c(-500, 400)) +
+
+  scale_fill_manual(values = c("grey60", "darkblue", "blue")) +
+  scale_color_manual(values = c("black", "blue", "blue")) +
+
+  labs(
+    x = "Year",
+    y = expression(paste("Effect on Deforestation (",
+                         m^2, " per ", km^2, ")"))
+  ) +
+
+  theme_classic(base_size = 14) +
+  theme(legend.position = "none")
+```
+
+
+
+2. Annotated Replication
+After each subsequent code block, add some notes covering:
+
+What does the code accomplish? (summary of the procedure or model)
+What is the causal identification approach? (e.g., DiD, RDD, IV, matching)
+What assumptions must hold for the estimates to be causally valid?
+Are there any signs in the output that those assumptions are or are not satisfied?
+
+## Evaluation
+
+3. Critical Evaluation
+Somewhere in the write-up (or as a closing section), address each of the following:
+
+Causal identification: Is the identification strategy credible? What would have to be true for the estimates to be causal?
+Statistical assumptions: Are key assumptions (parallel trends, exclusion restriction, etc.) tested or defended? Do you find the evidence convincing?
+Sampling & external validity: Who is in the sample? To whom can results be generalized?
+Measurement: Are the outcome and treatment variables measured accurately and without systematic bias?
+Other limitations: Anything else that affects how much weight you would put on the study’s conclusions?
+
+
+
