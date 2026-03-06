@@ -49,6 +49,63 @@ make <- function(data, names) {
 ```
 
 ```{r}
+# create a line graph (PML) for the parallel trends assumption
+
+parallel <- data %>% 
+  select(fl.2001, fl.2002, fl.2003, fl.2004, fl.2005, fl.2006, fl.2007, fl.2008, fl.2009, fl.2010, fl.2011, PML, PMI) %>%
+  pivot_longer(
+    cols = starts_with("fl."),
+    names_to = "year",
+    values_to = "deforestation") %>% 
+  mutate(year = as.numeric(str_remove(year, "fl\\.")))
+
+parallel_trends_PML <- parallel %>%
+  group_by(year, PML) %>%
+  summarise(
+    mean_deforestation = mean(deforestation, na.rm = TRUE),
+    .groups = "drop")
+
+ggplot(parallel_trends_PML, aes(x = year, y = mean_deforestation, color = factor(PML))) +
+  geom_line() +
+  geom_point(size = 3) +
+  # vertical line for the implement of treatment
+  geom_vline(xintercept = 2002, linetype = "dashed", color = "gray30", size = 1) +
+  annotate("label", x = 2002, y = 1250, label = "PML implementation", hjust = 0, size = 2.5) +
+  labs(
+    title = "Yearly Deforestation Trends: PML vs non-PML areas",
+    x = "Date",
+    y = "Deforestation (m^2 per km^2)",
+    color = "PML") +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+```
+```{r}
+# create a line graph (PMI) for the parallel trends assumption 
+
+parallel_trends_PMI <- parallel %>%
+  group_by(year, PMI) %>%
+  summarise(
+    mean_deforestation = mean(deforestation, na.rm = TRUE),
+    .groups = "drop")
+
+ggplot(parallel_trends_PMI, aes(x = year, y = mean_deforestation, color = factor(PMI))) +
+  geom_line() +
+  geom_point(size = 3) +
+  # vertical line for the implement of treatment
+  geom_vline(xintercept = 2002, linetype = "dashed", color = "gray30", size = 1) +
+  annotate("label", x = 2002, y = 1250, label = "PML implementation", hjust = 0, size = 2.5) +
+  labs(
+    title = "Yearly Deforestation Trends: PMI vs non-PMI areas",
+    x = "Date",
+    y = "Deforestation (m^2 per km^2)",
+    color = "PMI") +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+
+```
+
+
+```{r}
 # could make a function to run through all the waves... 
 
 wave_2002 <- data %>%
@@ -251,7 +308,11 @@ out_PMLonly_flat <- matchit(PML ~ fl_pre_5cell + forest_pre + pop_den_5km_pre + 
                 A128 + A129 + A130 + A154 + A347 + A361 + A362,
               data = data_make,
               method = "nearest", distance = "mahalanobis", discard = "none")
-summary(out_PMLonly_flat,interactions=T,standardize=T)
+s <- summary(out_PMLonly_flat,interactions=T,standardize=T)
+# s_nn <- as.data.frame(s$nn)
+# s_sum_all <- as.data.frame(s$sum.all)
+# THIS TABLE WILL TELL US HOW WELL THE MATCHING MATCHED THE COVARIATES
+s_sum_matched <- as.data.frame(s$sum.matched)
 
 data_PMLonly_flat_matched <- match.data(out_PMLonly_flat)
 
@@ -485,8 +546,6 @@ ggplot(df_7, aes(x = year, y = coef)) +
   theme_classic(base_size = 14) +
   theme(legend.position = "none")
 ```
-
-
 
 2. Annotated Replication
 After each subsequent code block, add some notes covering:
